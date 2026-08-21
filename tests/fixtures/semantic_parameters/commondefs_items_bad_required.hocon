@@ -1,0 +1,46 @@
+
+# Copyright (c) 2026 Nishant Sinha
+#
+# Licensed under the MIT License. See LICENSE.txt in the project
+# root for full license information.
+#
+# END COPYRIGHT
+
+# Error: An array whose items are defined via a commondefs string reference.
+# After DictionaryCommonDefsConfigFilter resolves "items": "cao_item" into
+# the actual schema dict, the semantic validator recurses into it and finds
+# that required references an undefined property ("age" not in properties).
+# This proves the filter chain runs before semantic validation — without it,
+# "items" would remain a raw string and the nested error would go undetected.
+# Expected result: 1 error mentioning
+# "parameters.properties.entries.items.required" and "undefined props".
+{
+    "commondefs": {
+        "replacement_values": {
+            "cao_item": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"}
+                },
+                "required": ["age"]
+            }
+        }
+    },
+    "tools": [
+        {
+            "name": "agent_d",
+            "function": {
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "entries": {
+                            "type": "array",
+                            "items": "cao_item"
+                        }
+                    }
+                }
+            },
+            "instructions": "test"
+        }
+    ]
+}

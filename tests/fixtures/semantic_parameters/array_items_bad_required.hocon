@@ -1,0 +1,37 @@
+
+# Copyright (c) 2026 Nishant Sinha
+#
+# Licensed under the MIT License. See LICENSE.txt in the project
+# root for full license information.
+#
+# END COPYRIGHT
+
+# Error: An array whose items schema is an object with a bad required ref.
+# The items object defines "name" but requires "age".
+# Expected result: 1 error mentioning
+# "parameters.properties.entries.items.required" and "undefined props".
+{
+    "tools": [
+        {
+            "name": "agent_c",
+            "function": {
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "entries": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {"type": "string"}
+                                },
+                                "required": ["age"]
+                            }
+                        }
+                    }
+                }
+            },
+            "instructions": "test"
+        }
+    ]
+}

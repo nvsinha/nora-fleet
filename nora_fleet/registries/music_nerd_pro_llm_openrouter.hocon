@@ -1,0 +1,107 @@
+
+# Copyright (c) 2026 Nishant Sinha
+#
+# Licensed under the MIT License. See LICENSE.txt in the project
+# root for full license information.
+#
+# END COPYRIGHT
+
+# The schema specifications for this file are documented here:
+# https://github.com/nvsinha/nora-fleet/blob/main/docs/agent_hocon_reference.md
+
+{
+    # Optional metadata describing this agent network
+    "metadata": {
+        "description": "Simple agent network using a single OpenRouter-based agent and a single CodedTool",
+        "tags": ["example", "llm_tests"],
+        "sample_queries": [
+            "Which band wrote Yellow Submarine?",
+            "Where are they from?",
+        ]
+    },
+    "llm_config": {
+        # OpenRouter exposes models under a "provider/model" naming convention
+        # (e.g. "anthropic/claude-sonnet-4-5", "openai/gpt-4o"). The two entries
+        # below — "openrouter/free" and "openrouter/auto" — are meta-routers that
+        # pick the underlying model at request time. Using a specific
+        # "provider/model" id pins to that exact model.
+        #
+        # The model_name only resolves to the openrouter class because
+        # default_llm_info.hocon has an entry for it. To use any other OpenRouter
+        # model without adding an llm_info entry, also set "class": "openrouter".
+        "model_name": "openrouter/free",
+    },
+    "tools": [
+        # This first agent definition is regarded as the "Front Man", which
+        # does all the talking to the outside world/client.
+        #
+        # Some disqualifications from being a front man:
+        #   1) Cannot use a CodedTool "class" definition
+        #   2) Cannot use a Tool "toolbox" definition
+        #
+        # Besides the first agent being the front man, these tool definitions
+        # do not have to be in any particular order. How they are linked and
+        # call each other is defined within their own specs.
+        # This could be a graph, potentially even with cycles.
+        {
+            "name": "MusicNerdPro",
+
+            # Note that there are no parameters defined for this guy's "function" key.
+            # This is fine for a front-man that only takes direct user input, but a
+            # network that is to be referenced as an external tool by another network
+            # should declare at least one parameter so the calling agent knows what
+            # to pass. (The front-man is simply the first agent in the "tools" list.)
+
+            "function": {
+
+                # The description acts as an initial prompt. 
+                "description": """
+I can help with music-related inquiries.
+"""
+            },
+
+            "instructions": """
+You’re Music Nerd Pro, the go-to brain for all things rock, pop, and everything in between from the 60s onward. You live for liner notes, B-sides, lost demos, and legendary live sets. You know who played bass on that one track in ‘72 and why the band broke up in ‘83. People come to you with questions like:
+	•	“What’s the story behind this song?”
+	•	“Which album should I start with?”
+	•	“Who influenced this band’s sound?”
+	•	“Is there a deeper meaning in these lyrics?”
+	•	“What’s a hidden gem I probably missed?”
+You’re equal parts playlist curator, music historian, and pop culture mythbuster—with a sixth sense for sonic nostalgia and a deep respect for the analog gods.
+
+- You must call the Accountant tool exactly once per user question — no more, no less.
+- You must not estimate, guess, or invent the cost under any circumstance.
+- You must not skip calling the Accountant tool — it is required once for every question.
+
+For each question you receive, call your Accountant agent to calculate the running cost. Otherwise you won't get paid!
+Then answer with a JSON message that has two keys:
+1. An "answer" key whose value has the answer to the question
+2. A "running_cost" key whose value has the running cost computed by the Accountant agent.
+""",
+            "tools": ["Accountant"]
+
+            # Parse any JSON in responses into the structure field of the ChatMessage.
+            "structure_formats": "json"
+        },
+        {
+            "name": "Accountant",
+            "function": {
+                "description": """
+You are an API that keeps track of the running cost of the MusicNerdPro service. Pass the current running cost
+to the API to get the updated running cost. If no running cost is known, pass 0.00.
+                """,
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "running_cost": {
+                            "type": "float",
+                            "description": "The current running total of the service cost."
+                        },
+                    },
+                    "required": ["running_cost"]
+                }
+            },
+            "class": "accountant.Accountant"
+        },
+    ]
+}

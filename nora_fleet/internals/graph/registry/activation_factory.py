@@ -1,0 +1,243 @@
+
+# Copyright (c) 2026 Nishant Sinha
+#
+# Licensed under the MIT License. See LICENSE.txt in the project
+# root for full license information.
+#
+# END COPYRIGHT
+from typing import Any
+from typing import Dict
+from typing import List
+
+from copy import copy as shallow_copy
+from os import environ
+from os import pathsep as os_path_separator
+from os import sep as os_separator
+from pathlib import Path
+
+from nora_common.resolution.resolver_util import ResolverUtil
+
+from nora_fleet import TOP_LEVEL_DIR
+from nora_fleet.internals.graph.activations.front_man_activation import FrontManActivation
+from nora_fleet.internals.graph.preppers.activation_prepper import ActivationPrepper
+from nora_fleet.internals.graph.preppers.external_activation_prepper import ExternalActivationPrepper
+from nora_fleet.internals.graph.preppers.toolbox_activation_prepper import ToolboxActivationPrepper
+from nora_fleet.internals.graph.preppers.class_activation_prepper import ClassActivationPrepper
+from nora_fleet.internals.graph.preppers.branch_activation_prepper import BranchActivationPrepper
+from nora_fleet.internals.graph.preppers.front_man_activation_prepper import FrontManActivationPrepper
+from nora_fleet.internals.graph.registry.agent_network import AgentNetwork
+from nora_fleet.internals.interfaces.agent_tool_factory import AgentToolFactory
+from nora_fleet.internals.interfaces.callable_activation import CallableActivation
+from nora_fleet.internals.interfaces.front_man import FrontMan
+from nora_fleet.internals.run_context.interfaces.run_context import RunContext
+
+
+class ActivationFactory(AgentToolFactory):
+    """
+    A factory class for creating Activations of tools within the agent network graph.
+    That is, this is where nora-fleet tools are made real.
+    """
+
+    # Basic list of stateless ActivationPreppers. Order matters.
+    BASE_PREPPERS: List[ActivationPrepper] = [
+        ExternalActivationPrepper(),
+        # Note that external prepper definitions get added at this point.
+        # The idea is to extend the regular tool spec, not our contract with external tools.
+        ToolboxActivationPrepper(),
+        ClassActivationPrepper(),
+        BranchActivationPrepper(),
+        FrontManActivationPrepper(),
+    ]
+
+    def __init__(self, agent_network: AgentNetwork):
+        """
+        Constructor
+
+        :param agent_network: The AgentNetwork this factory will be basing its information on
+        """
+        self.agent_network: AgentNetwork = agent_network
+        self.agent_tool_path: str = self._determine_agent_tool_path()
+        self.preppers: List[ActivationPrepper] = self._create_preppers()
+
+    def _determine_agent_tool_path(self) -> str:
+        """
+        Policy for determining where tool source should be looked for
+        when resolving references to coded tools.
+
+        :return: the agent tool path to use for source resolution.
+        """
+        # Try the env var first if nothing to start with
+        agent_tool_path: str = environ.get("AGENT_TOOL_PATH")
+
+        # Try reach-around directory if still nothing to start with
+        if agent_tool_path is None:
+            agent_tool_path = TOP_LEVEL_DIR.get_file_in_basis("coded_tools")
+
+        # If we are dealing with file paths, convert that to something resolvable
+        if agent_tool_path.find(os_separator) >= 0:
+
+            # Find the best of many resolution paths in the PYTHONPATH
+            resolved_tool_path: str = str(Path(agent_tool_path).resolve())
+            best_path = ""
+            pythonpath: str = environ.get("PYTHONPATH")
+            if pythonpath is None:
+                # Trust what we have already
+                best_path = agent_tool_path
+            else:
+                pythonpath_split = pythonpath.split(os_path_separator)
+                for one_path in pythonpath_split:
+                    resolved_path: str = str(Path(one_path).resolve())
+                    if resolved_tool_path.startswith(resolved_path) and \
+                            len(resolved_path) > len(best_path):
+                        best_path = resolved_path
+
+            if len(best_path) == 0:
+                raise ValueError(f"No reasonable agent tool path found in PYTHONPATH for {agent_tool_path}")
+
+            # Find the path beneath the python path
+            path_split = resolved_tool_path.split(best_path)
+            if len(path_split) < 2:
+                raise ValueError("""
+Cannot find tool path for {agent_tool_path} in PYTHONPATH.
+Check to be sure your value for PYTHONPATH includes where you expect where your coded tools live.
+""")
+            resolve_path = path_split[1]
+
+            # Replace separators with python delimiters for later resolution
+            agent_tool_path = resolve_path.replace(os_separator, ".")
+
+            # Remove any leading .s
+            while agent_tool_path.startswith("."):
+                agent_tool_path = agent_tool_path[1:]
+
+        # Now, agent network name itself can contain "/" symbols (regardless of underlying OS)
+        # in case of hierarchical agents structure. Replace those with "." as well.
+        agent_network_path = self.agent_network.get_network_name().replace("/", ".")
+
+        # Be sure the name of the agent (stem of the hocon file) is the
+        # last piece to narrow down the path resolution further.
+        if not agent_tool_path.endswith(agent_network_path):
+            agent_tool_path = f"{agent_tool_path}.{agent_network_path}"
+
+        return agent_tool_path
+
+    def _create_preppers(self) -> List[ActivationPrepper]:
+        """
+        Create a list of ActivationPrepper instances to use using BASE_PREPPERS as a basis,
+        then add any externally defined preppers.
+
+        :return: A list of ActivationPrepper instances
+        """
+        preppers: List[ActivationPrepper] = shallow_copy(self.BASE_PREPPERS)
+
+        # Then read the agent network's prepper list
+        external_preppers: List[ActivationPrepper] = []
+
+        prepper_class_name: str = None
+        agent_prepper_classes: str = environ.get("AGENT_ACTIVATION_PREPPER_CLASSES") or ""
+        for prepper_class_name in agent_prepper_classes.split():
+            use_prepper_class_name = prepper_class_name.strip()
+            prepper: ActivationPrepper = ResolverUtil.create_instance(use_prepper_class_name,
+                                                                      "AGENT_ACTIVATION_PREPPER_CLASSES env var",
+                                                                      ActivationPrepper)
+            if prepper is not None:
+                external_preppers.append(prepper)
+
+        # Insert any externally defined preppers after external agents
+        if len(external_preppers) > 0:
+            preppers[1:1] = external_preppers
+
+        return preppers
+
+    def get_agent_tool_path(self) -> str:
+        """
+        :return: The path under which tools for this registry should be looked for.
+        """
+        return self.agent_tool_path
+
+    # pylint: disable=too-many-arguments,too-many-positional-arguments
+    def create_agent_activation(self, parent_run_context: RunContext,
+                                parent_agent_spec: Dict[str, Any],
+                                name: str,
+                                sly_data: Dict[str, Any],
+                                args: Dict[str, Any] = None,
+                                factory: AgentToolFactory = None,
+                                invocation: str = None) -> CallableActivation:
+        """
+        Create an active node for an agent from its spec.
+        This is how CallableActivations create other CallableActivations.
+
+        :param parent_run_context: The RunContext of the agent calling this method
+        :param parent_agent_spec: The spec of the agent calling this method.
+        :param name: The name of the agent to get out of the registry
+        :param sly_data: A mapping whose keys might be referenceable by agents, but whose
+                 values should not appear in agent chat text. Can be an empty dictionary.
+        :param args: A dictionary of arguments for the newly constructed agent
+        :param factory: A factory that will be used to create the agent tool
+        :param invocation: The invocation style of the activation.
+        :return: The CallableActivation agent referred to by the name.
+        """
+        if factory is None:
+            factory = self
+
+        # Find the agent tool spec dictionary given the name
+        agent_tool_spec: Dict[str, Any] = self.agent_network.get_agent_tool_spec(name)
+
+        # Find the appropriate ActivationPrepper given the agent tool spec
+        prepper: ActivationPrepper = None
+        for candidate in self.preppers:
+            if candidate.is_applicable(agent_tool_spec):
+                prepper = candidate
+                break
+
+        if prepper is None:
+            raise ValueError(f"No activation handler found for {name} (tool spec: {agent_tool_spec})")
+
+        # Prepare the activation
+        agent_activation: CallableActivation = prepper.prepare_activation(
+            name,
+            agent_tool_spec,
+            parent_agent_spec,
+            args,
+            sly_data,
+            parent_run_context,
+            factory,
+            invocation
+        )
+
+        return agent_activation
+
+    def create_front_man(self,
+                         sly_data: Dict[str, Any] = None,
+                         parent_run_context: RunContext = None,
+                         factory: AgentToolFactory = None) -> FrontMan:
+        """
+        Find and create the FrontMan for DataDrivenChat
+
+        :param sly_data: A mapping whose keys might be referenceable by agents, but whose
+                 values should not appear in agent chat text. Can be an empty dictionary.
+        :param parent_run_context: A RunContext instance
+        :param factory: An optional extra parameter at this ActivationFactory level to provide
+                    the correct object reference for factory scope/lifetime issues.
+        """
+        if factory is None:
+            factory = self
+
+        front_man_name: str = self.agent_network.find_front_man()
+
+        agent_tool_spec: Dict[str, Any] = self.agent_network.get_agent_tool_spec(front_man_name)
+        front_man = FrontManActivation(parent_run_context, factory, agent_tool_spec, sly_data)
+        return front_man
+
+    def get_config(self) -> Dict[str, Any]:
+        """
+        :return: The entire config dictionary given to the instance.
+        """
+        return self.agent_network.get_config()
+
+    def get_name_from_spec(self, agent_spec: Dict[str, Any]) -> str:
+        """
+        :param agent_spec: A single agent to register
+        :return: The agent name as per the spec
+        """
+        return self.agent_network.get_name_from_spec(agent_spec)

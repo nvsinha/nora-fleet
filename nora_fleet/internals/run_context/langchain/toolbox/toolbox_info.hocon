@@ -1,0 +1,70 @@
+
+# Copyright (c) 2026 Nishant Sinha
+#
+# Licensed under the MIT License. See LICENSE.txt in the project
+# root for full license information.
+#
+# END COPYRIGHT
+
+# The schema specifications for this file are documented here:
+# https://github.com/nvsinha/nora-fleet/blob/main/docs/toolbox_info_hocon_reference.md
+
+{
+    # ------------------------------------------------------------------------------------------
+    # Overview:
+    # - This file defines the tools that ship with the default nora-fleet toolbox. The format
+    #   supports both langchain tools/toolkits and shared coded tools; the default entries
+    #   below are all coded tools.
+    # - See https://github.com/nvsinha/nora-fleet/blob/main/docs/agent_hocon_reference.md for more information on coded tools.
+    #
+    # Customization via Agent HOCON File:
+    # - In the agent HOCON file, users can define an "args" section to **add or override**
+    #   arguments from this tool configuration file dynamically at runtime.
+    # ------------------------------------------------------------------------------------------
+
+    # --------------------------- Langchain's Tools and Toolkits -------------------------------
+    # No langchain tools ship in this default toolbox. The former requests_* tools and
+    # requests_toolkit were removed because they were built on the deprecated
+    # langchain-community package and shipped with allow_dangerous_requests=true.
+    # Operators who need HTTP tools must define them in their own toolbox info file
+    # (via the AGENT_TOOLBOX_INFO_FILE environment variable or the "toolbox_info_file"
+    # key in the agent network hocon). See the schema reference linked at the top of this
+    # file for migration guidance and SSRF hardening recommendations.
+    #
+    # Requirements for langchain tools configured here:
+    # - Each tool or toolkit must have a "class" key.
+    # - "class" must be of the form "<package_name>.<module_name>.<ClassName>" (at least three
+    #   dot-separated segments), naming the module that defines the class — not a top-level
+    #   re-export like "langchain_tavily.TavilySearch".
+    # - The specified class must be available in the server's PYTHONPATH.
+    # - Additional dependencies must be installed separately.
+    # - Browse maintained integrations at: https://docs.langchain.com/oss/python/integrations/tools
+
+    # --------------------------------- Shared CodedTool ------------------------------------
+    # Keys:
+    # - "class" specifies the tool's implementation as module.ClassName where module is in AGENT_TOOL_PATH or nora_fleet/coded_tools.
+    # - "description" let the agent know what the tool does.
+    # - "parameters" are arguments' definitions and types.
+    # Note: Parameters are optional and may be omitted if not required.
+    # See "parameters" section in https://github.com/nvsinha/nora-fleet/blob/main/docs/agent_hocon_reference.md
+
+    "get_current_date_time": {
+        "class": "get_current_date_time.GetCurrentDateTime",
+        "description": "Get the current date and time for a specified timezone. utc_offset has precedence over iana_timezone.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "utc_offset": {
+                    "type": "int",
+                    "description": "The UTC offset in hours (e.g., -5 for EST, 1 for CET). Must be between -24 and 24. Has precedence over iana_timezone."
+                },
+                "iana_timezone": {
+                    "type": "string",
+                    "description": "The IANA timezone string (e.g., 'America/New_York', 'Europe/Berlin')."
+                }
+            },
+            "required": []
+        }
+    }
+
+}

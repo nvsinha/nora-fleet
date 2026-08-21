@@ -1,0 +1,31 @@
+
+# Copyright (c) 2026 Nishant Sinha
+#
+# Licensed under the MIT License. See LICENSE.txt in the project
+# root for full license information.
+#
+# END COPYRIGHT
+
+# Error: The headline bug from studio#690.
+# A 'parameters' key inside a parameters block — the inner properties/required
+# should be one level up.
+# Expected result: 1 error mentioning "nested 'parameters'".
+{
+    "tools": [
+        {
+            "name": "runner_tool",
+            "function": {
+                "parameters": {
+                    "type": "object",
+                    # This nested 'parameters' key is the bug.
+                    "parameters": {
+                        "type": "object",
+                        "properties": {"action": {"type": "string"}},
+                        "required": ["action"]
+                    }
+                }
+            },
+            "instructions": "test"
+        }
+    ]
+}

@@ -1,0 +1,28 @@
+
+# Copyright (c) 2026 Nishant Sinha
+#
+# Licensed under the MIT License. See LICENSE.txt in the project
+# root for full license information.
+#
+# END COPYRIGHT
+
+# Error: required lists a property name that does not exist in properties.
+# The defined property is "text_sample" but required references "sample".
+# Expected result: 1 error mentioning "undefined props" and "sample".
+{
+    "tools": [
+        {
+            "name": "agent_a",
+            "function": {
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "text_sample": {"type": "string"}
+                    },
+                    "required": ["sample"]
+                }
+            },
+            "instructions": "test"
+        }
+    ]
+}

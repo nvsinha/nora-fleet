@@ -1,0 +1,28 @@
+
+# Copyright (c) 2026 Nishant Sinha
+#
+# Licensed under the MIT License. See LICENSE.txt in the project
+# root for full license information.
+#
+# END COPYRIGHT
+
+# Error: A tool whose parameters block has a nested 'parameters' key.
+# Used by test_bad_parameters to verify the abstract test contract.
+# Expected result: at least 1 error.
+{
+    "tools": [
+        {
+            "name": "bad_tool",
+            "function": {
+                "parameters": {
+                    "type": "object",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {"x": {"type": "string"}}
+                    }
+                }
+            },
+            "instructions": "test"
+        }
+    ]
+}

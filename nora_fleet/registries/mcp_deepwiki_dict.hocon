@@ -1,0 +1,51 @@
+
+# Copyright (c) 2026 Nishant Sinha
+#
+# Licensed under the MIT License. See LICENSE.txt in the project
+# root for full license information.
+#
+# END COPYRIGHT
+
+# The schema specifications for this file are documented here:
+# https://github.com/nvsinha/nora-fleet/blob/main/docs/agent_hocon_reference.md
+
+{
+    # Optional metadata describing this agent network
+    "metadata": {
+        "description": "Simple agent network consisting of a single agent and MCP tools",
+        "tags": ["example", "mcp"],
+    },
+    "llm_config": {
+        "model_name": "gpt-5.2"
+    },
+    "tools": [
+        # These tool definitions do not have to be in any particular order
+        # How they are linked and call each other is defined within their
+        # own specs.  This could be a graph, potentially even with cycles.
+
+        # This first guy is the "Front Man".  He is identified as such because
+        # he is the only one with no parameters in his function definition,
+        # and therefore he needs to talk to the outside world to get things rolling.
+        {
+            "name": "searcher",
+            "instructions": "Use your tool to respond to the inquiry.",
+            "function": {
+                "description": "Assist user with answer from deepwiki."
+            },
+            "tools": [
+                {
+                    # Only support streamable http protocal
+                    # For other modes of transport, use coded tool implementation
+                    "url": "https://mcp.deepwiki.com/mcp",
+
+                    # Optional: restricts which tools are available.
+                    # If omitted, all tools are enabled.
+                    # note that tools [read_wiki_content & ask_question] not work on www.wikipedia.org/nvsinha/nora-fleet
+                    "tools": ["read_wiki_structure"]
+
+                    # For authentication, see https://github.com/nvsinha/nora-fleet/blob/main/docs/agent_hocon_reference.md#authentication
+                }
+            ]
+        }
+    ]
+}

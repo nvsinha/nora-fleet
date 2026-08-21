@@ -1,0 +1,41 @@
+# Copyright (c) 2026 Nishant Sinha
+#
+# Licensed under the MIT License. See LICENSE.txt in the project
+# root for full license information.
+#
+# END COPYRIGHT
+
+# Error: parameter names that pydantic v2 cannot accept as field names.
+# "model_config" is reserved by pydantic for model configuration and
+# "_private" has a leading underscore.  Pydantic v1 tolerated both;
+# BaseModelDictionaryConverter.validate_field_name() rejects them with
+# a clear ToolSpecError instead of pydantic v2's cryptic TypeError/NameError.
+# Expected result: 2 errors mentioning "pydantic model conversion failed".
+{
+    "tools": [
+        {
+            "name": "agent_f",
+            "function": {
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "model_config": {"type": "string"}
+                    }
+                }
+            },
+            "instructions": "test"
+        },
+        {
+            "name": "agent_g",
+            "function": {
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "_private": {"type": "string"}
+                    }
+                }
+            },
+            "instructions": "test"
+        }
+    ]
+}

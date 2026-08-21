@@ -1,0 +1,57 @@
+
+// Copyright (c) 2026 Nishant Sinha
+//
+// Licensed under the MIT License. See LICENSE.txt in the project
+// root for full license information.
+//
+// END COPYRIGHT
+
+// To obtain information concerning the code generation that is used by this Interface Definition Language
+// please see the following:
+//
+// Go - https://developers.google.com/protocol-buffers/docs/reference/go-generated
+// Python - https://developers.google.com/protocol-buffers/docs/reference/python-generated
+//
+syntax = "proto3";
+
+package app.nora_fleet.api.grpc.concierge;
+
+import "google/api/annotations.proto";
+
+option go_package = "github.com/nvsinha/nora-fleet/internal/gen/app.nora_fleet/nora_fleet/api/grpc/concierge/v1;concierge";
+
+// The service provides system-wide information about resources available
+// in current instance of nora-fleet.
+service ConciergeService {
+
+    // Called when a client needs the information about available agents.
+    rpc List (ConciergeRequest) returns (ConciergeResponse) {
+        option (google.api.http) = {
+            get: "/api/v1/list"
+        };
+    }
+}
+
+// Request structure for List gRPC method
+message ConciergeRequest {
+}
+
+// Description of an agent's function
+message AgentInfo {
+    // Agent name
+    string agent_name =  1 [json_name="agent_name"];
+
+    // Outward-facing description of what the agent does.
+    string description = 2 [json_name="description"];
+
+    // Optional metadata describing where this agent falls into larger agent grouping(s).
+    repeated string tags = 3 [json_name="tags"];
+}
+
+// Response structure for List gRPC method
+message ConciergeResponse {
+
+    // List of agent descriptions
+    repeated AgentInfo agents = 1 [json_name="agents"];
+}
+

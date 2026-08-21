@@ -1,0 +1,47 @@
+
+# Copyright (c) 2026 Nishant Sinha
+#
+# Licensed under the MIT License. See LICENSE.txt in the project
+# root for full license information.
+#
+# END COPYRIGHT
+
+# Valid: String "items" commondef reference with a commondefs section.
+# DictionaryCommonDefsConfigFilter resolves "cao_item" to its actual
+# schema dict before validation runs.  from_dict() sees a proper dict
+# and does not crash.
+# Expected result: 0 errors.
+{
+    "commondefs": {
+        "replacement_values": {
+            "cao_item": {
+                "type": "object",
+                "properties": {
+                    "attribute_name": {
+                        "type": "string"
+                    }
+                },
+                "required": ["attribute_name"]
+            }
+        }
+    },
+    "tools": [
+        {
+            "name": "collector_tool",
+            "function": {
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "entries": {
+                            "type": "array",
+                            "items": "cao_item",
+                            "description": "commondef reference resolved by filter chain"
+                        }
+                    },
+                    "required": ["entries"]
+                }
+            },
+            "instructions": "test"
+        }
+    ]
+}

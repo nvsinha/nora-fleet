@@ -1,0 +1,30 @@
+
+# Copyright (c) 2026 Nishant Sinha
+#
+# Licensed under the MIT License. See LICENSE.txt in the project
+# root for full license information.
+#
+# END COPYRIGHT
+
+# Error: A nested object whose "properties" is a string instead of a dict.
+# Caught by the pydantic conversion phase.
+# Expected result: 1 error mentioning "pydantic model conversion failed".
+{
+    "tools": [
+        {
+            "name": "agent_b",
+            "function": {
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "config": {
+                            "type": "object",
+                            "properties": "not_a_dict"
+                        }
+                    }
+                }
+            },
+            "instructions": "test"
+        }
+    ]
+}

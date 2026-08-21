@@ -1,0 +1,45 @@
+
+# Copyright (c) 2026 Nishant Sinha
+#
+# Licensed under the MIT License. See LICENSE.txt in the project
+# root for full license information.
+#
+# END COPYRIGHT
+
+# Valid: String reference "items": "cao_item" is resolved by
+# DictionaryCommonDefsConfigFilter via the commondefs section below.
+# After filtering, the string becomes the actual schema dict and
+# pydantic validation passes without any ad-hoc workarounds.
+# Expected result: 0 errors.
+{
+    "commondefs": {
+        "replacement_values": {
+            "cao_item": {
+                "type": "object",
+                "properties": {
+                    "attribute_name": {
+                        "type": "string"
+                    }
+                },
+                "required": ["attribute_name"]
+            }
+        }
+    },
+    "tools": [
+        {
+            "name": "esp_tool",
+            "function": {
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "context_defs": {
+                            "type": "array",
+                            "items": "cao_item"
+                        }
+                    }
+                }
+            },
+            "instructions": "test"
+        }
+    ]
+}

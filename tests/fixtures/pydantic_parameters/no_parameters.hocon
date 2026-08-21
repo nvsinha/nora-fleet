@@ -1,0 +1,20 @@
+
+# Copyright (c) 2026 Nishant Sinha
+#
+# Licensed under the MIT License. See LICENSE.txt in the project
+# root for full license information.
+#
+# END COPYRIGHT
+
+# Valid: Agent with no parameters block at all.
+# This is common for front-man agents.
+# Expected result: 0 errors.
+{
+    "tools": [
+        {
+            "name": "agent_no_params",
+            "function": {"description": "just a description"},
+            "instructions": "test"
+        }
+    ]
+}

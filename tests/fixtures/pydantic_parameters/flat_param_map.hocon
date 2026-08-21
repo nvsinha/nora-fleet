@@ -1,0 +1,26 @@
+
+# Copyright (c) 2026 Nishant Sinha
+#
+# Licensed under the MIT License. See LICENSE.txt in the project
+# root for full license information.
+#
+# END COPYRIGHT
+
+# Valid: Some agents use a flat parameter map (param_name -> spec) instead
+# of the standard OpenAI {type, properties, required} shape.
+# The validator should NOT flag this as invalid.
+# Expected result: 0 errors.
+{
+    "tools": [
+        {
+            "name": "prankster",
+            "function": {
+                "parameters": {
+                    "phone_number": {"type": "string", "description": "n"},
+                    "message": {"type": "string", "description": "m"}
+                }
+            },
+            "instructions": "test"
+        }
+    ]
+}

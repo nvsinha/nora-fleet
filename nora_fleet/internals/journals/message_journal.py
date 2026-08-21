@@ -1,0 +1,82 @@
+
+# Copyright (c) 2026 Nishant Sinha
+#
+# Licensed under the MIT License. See LICENSE.txt in the project
+# root for full license information.
+#
+# END COPYRIGHT
+from typing import Any
+from typing import Dict
+from typing import List
+
+from langchain_core.messages.base import BaseMessage
+
+from nora_fleet.internals.interfaces.async_hopper import AsyncHopper
+from nora_fleet.internals.journals.journal import Journal
+from nora_fleet.message.filters.maximal_message_filter import MaximalMessageFilter
+from nora_fleet.message.filters.message_filter import MessageFilter
+from nora_fleet.message.processors.message_processor import MessageProcessor
+from nora_fleet.message.types.base_message_dictionary_converter import BaseMessageDictionaryConverter
+from nora_fleet.message.types.chat_message_type import ChatMessageType
+
+
+class MessageJournal(Journal):
+    """
+    Journal implementation for putting entries into a Hopper
+    for storage for later processing.
+    """
+
+    def __init__(self, hopper: AsyncHopper):
+        """
+        Constructor
+
+        :param hopper: A handle to an AsyncHopper implementation, onto which
+                       any message will be put().
+        """
+        self.hopper: AsyncHopper = hopper
+        self.message_filter: MessageFilter = MaximalMessageFilter()
+        self.message_processor: MessageProcessor = None
+
+    def set_message_filter(self, message_filter: MessageFilter):
+        """
+        Sets the message filter for this journal.
+        """
+        self.message_filter = message_filter
+
+    def set_message_processor(self, message_processor: MessageProcessor):
+        """
+        Sets the message processor for this journal.
+        """
+        self.message_processor = message_processor
+
+    async def write_message(self, message: BaseMessage, origin: List[Dict[str, Any]]):
+        """
+        Writes a BaseMessage entry into the journal
+        :param message: The BaseMessage instance to write to the journal
+        :param origin: A List of origin dictionaries indicating the origin of the run.
+                The origin can be considered a path to the original call to the front-man.
+                Origin dictionaries themselves each have the following keys:
+                    "tool"                  The string name of the tool in the spec
+                    "instantiation_index"   An integer indicating which incarnation
+                                            of the tool is being dealt with.
+        """
+        converter = BaseMessageDictionaryConverter(origin=origin)
+        message_dict: Dict[str, Any] = converter.to_dict(message)
+        message_type: ChatMessageType = message_dict.get("type")
+
+        if not self.message_filter.allow_message(message_dict, message_type):
+            return
+
+        if self.message_processor is not None:
+            # Can modify message_dict
+            await self.message_processor.async_process_message(message_dict, message_type)
+
+        outgoing_dict = {"response": message_dict}
+
+        # Queue Producer from this:
+        #   https://stackoverflow.com/questions/74130544/asyncio-yielding-results-from-multiple-futures-as-they-arrive
+        # The synchronous=True is necessary when an async HTTP request is at the get()-ing end of the queue,
+        # as the journal messages come from inside a separate event loop from that request. The lock
+        # taken here ends up being harmless in the synchronous request case (like for gRPC) because
+        # we would only be blocking our own event loop.
+        await self.hopper.put(outgoing_dict, synchronous=True)

@@ -1,0 +1,85 @@
+
+# Copyright (c) 2026 Nishant Sinha
+#
+# Licensed under the MIT License. See LICENSE.txt in the project
+# root for full license information.
+#
+# END COPYRIGHT
+from __future__ import annotations
+
+from typing import Any
+from typing import Dict
+from typing import List
+
+from pydantic import BaseModel
+
+from nora_common.serialization.interface.dictionary_converter import DictionaryConverter
+
+
+class PydanticArgumentDictionaryConverter(DictionaryConverter):
+    """
+    DictionaryConverter implementation which can convert a
+    dynamically created pydantic object to a dictionary for use
+    in passing arguments around.
+    """
+
+    def to_dict(self, obj: BaseModel) -> Dict[str, Any]:
+        """
+        :param obj: The object to be converted into a dictionary
+        :return: A data-only dictionary that represents all the data for
+                the given object, either in primitives
+                (booleans, ints, floats, strings), arrays, or dictionaries.
+                If obj is None, then the returned dictionary should also be
+                None.  If obj is not the correct type, it is also reasonable
+                to return None.
+        """
+        # Do the pydantic conversion to a dict
+        base_dict: Dict[str, Any] = dict(obj)
+
+        # Loop through all the keys, recursively converting any sub-objects
+        # (dicts, pydantic objects, and list elements thereof) to dictionaries.
+        new_dict: Dict[str, Any] = {}
+        for key, value in base_dict.items():
+            new_dict[key] = self._convert_value(value)
+
+        return new_dict
+
+    def _convert_value(self, value: Any) -> Any:
+        """
+        Recursively convert a single value, descending into dicts, pydantic
+        BaseModel instances, and lists thereof.
+        """
+        if isinstance(value, Dict) or self.is_pydantic_object(value):
+            return self.to_dict(value)
+        if isinstance(value, list):
+            converted_list: List = []
+            for item in value:
+                converted_list.append(self._convert_value(item))
+            return converted_list
+        return value
+
+    def from_dict(self, obj_dict: Dict[str, Any]) -> BaseModel:
+        """
+        :param obj_dict: The data-only dictionary to be converted into an object
+        :return: An object instance created from the given dictionary.
+                If obj_dict is None, the returned object should also be None.
+                If obj_dict is not the correct type, it is also reasonable
+                to return None.
+        """
+        # At this point we are not going back to BaseModel objects
+        raise NotImplementedError
+
+    def is_pydantic_object(self, value: Any) -> bool:
+        """
+        :param value: the value to test
+        :return: True if the object is a pydantic object. False otherwise.
+
+        An isinstance() check is correct now that BaseModelDictionaryConverter
+        creates native pydantic v2 models.  The previous duck-typed check
+        (hasattr(value, "parse_obj")) dated from when the values here were
+        pydantic v1 models: it keyed off an API that is deprecated in
+        pydantic v2 and slated for removal in v3, and it returned a wrong
+        False whenever a model had a field literally named "parse_obj"
+        (buildable under v2), which let nested models through unflattened.
+        """
+        return isinstance(value, BaseModel)

@@ -1,0 +1,76 @@
+---
+# Integration tests hit real LLM providers, so they cost money and need keys.
+# They are therefore manual-dispatch plus a nightly schedule, never on push.
+#
+# If OPENAI_API_KEY is not configured on the repository, the job skips
+# cleanly rather than failing -- an unconfigured integration suite should
+# not show up as a broken build.
+
+name: Integration
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Daily at 03:00 UTC
+    - cron: '0 3 * * *'
+
+jobs:
+  integration:
+    name: Integration tests
+    runs-on: ubuntu-latest
+
+    steps:
+      # v6.0.2
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
+      - name: Check for required secrets
+        id: guard
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          if [ -z "$OPENAI_API_KEY" ]; then
+            echo "OPENAI_API_KEY not configured -- skipping integration tests."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # v7.0.0
+      - name: Set up Python
+        if: steps.guard.outputs.run == 'true'
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      # nora-common is a PRIVATE repo. Remove once the Nora repos are public.
+      - name: Authenticate for private Nora dependencies
+        if: steps.guard.outputs.run == 'true'
+        env:
+          NORA_REPOS_TOKEN: ${{ secrets.NORA_REPOS_TOKEN }}
+        run: |
+          git config --global \
+            url."https://x-access-token:${NORA_REPOS_TOKEN}@github.com/".insteadOf \
+            "https://github.com/"
+
+      - name: Install dependencies
+        if: steps.guard.outputs.run == 'true'
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-build.txt
+
+      - name: Run integration tests
+        if: steps.guard.outputs.run == 'true'
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          AGENT_TOOL_PATH: ./nora_fleet/coded_tools
+          PYTHONPATH: .
+        run: |
+          build_scripts/server_start.sh
+          pytest --verbose -m "integration" --timer-top-n 10

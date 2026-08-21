@@ -1,0 +1,52 @@
+
+# Copyright (c) 2026 Nishant Sinha
+#
+# Licensed under the MIT License. See LICENSE.txt in the project
+# root for full license information.
+#
+# END COPYRIGHT
+
+# The schema specifications for this file are documented here:
+# https://github.com/nvsinha/nora-fleet/blob/main/docs/agent_hocon_reference.md
+
+{
+    # Optional metadata describing this agent network
+    "metadata": {
+        "description": "Testing nora-fleet infrastructure by using a mock llm.",
+        "tags": ["test"],
+    },
+    "llm_config": {
+        "class": "nora_fleet.test.llms.chat_mock_llm.ChatMockLlm",
+        # As of Oct 10, 2025 the model name can be anything since the model only echoes.
+        "model_name": "echo",
+    },
+    "tools": [
+        # This first agent definition is regarded as the "Front Man", which
+        # does all the talking to the outside world/client.
+        #
+        # Some disqualifications from being a front man:
+        #   1) Cannot use a CodedTool "class" definition
+        #   2) Cannot use a Tool "toolbox" definition
+        #
+        # Besides the first agent being the front man, these tool definitions
+        # do not have to be in any particular order. How they are linked and
+        # call each other is defined within their own specs.
+        # This could be a graph, potentially even with cycles.
+        {
+            "name": "echoer",
+
+            # Note that there are no parameters defined for this guy's "function" key.
+            # This is fine for a front-man that only takes direct user input, but a
+            # network that is to be referenced as an external tool by another network
+            # should declare at least one parameter so the calling agent knows what
+            # to pass. (The front-man is simply the first agent in the "tools" list.)
+
+            "function": {
+                # The description acts as an initial prompt. 
+                "description": "This is a mock llm that only echo the input.",
+            },
+
+            "instructions": "System prompt for the mock llm",
+        },
+    ]
+}
