@@ -8,307 +8,281 @@
 
 **Multi-agent networks, defined in config.**
 
-Nora Fleet is the runtime for agent networks that are declared in HOCON rather
-than written in code. Run it as a library, or serve it over HTTP or gRPC.
+Nora Fleet is the runtime for agent networks that are declared in HOCON rather than written in
+code. Run it as a library, or serve it over HTTP or gRPC.
 
-Motivation: People come with all their hopes and dreams to lay them at the altar
-of a single LLM/agent expecting it to do the most complex tasks.  This often fails
-because the scope is often too big for a single LLM to handle.  People expect the
-equivalent of an adult PhD to be at their disposal, but what you really get is a high-school intern.
+## Why networks rather than one agent
 
-Solution: Allow these problems to be broken up into smaller pieces so that multiple LLM-enabled
-agents can communicate with each other to solve a single problem.
+Handing an entire complex task to a single model is the most common way to be disappointed by
+one. The scope is usually wider than any one model can hold, and the gap between what people
+expect and what they get is largely a gap of scope, not of capability.
 
-Nora Fleet agent networks can be entirely specified in a data-only
-[HOCON](https://github.com/lightbend/config/blob/main/HOCON.md)
-file format (think: JSON with comments, among other things), enabling subject matter experts
-to be the authors of complex agent networks, not just programmers.
+Splitting the task changes that. A network of narrower agents, each with a job it can actually
+do, can pass work between them and arrive somewhere a single prompt would not.
 
-Nora Fleet agent networks can also call CodedTools (langchain or our own interface) which do things
-that LLMs can't on their own like: Query a web service, effectuate change via a web API, handle
-private data correctly, do complex math operations, copy large bits of data without error.
-While this aspect _does_ require programming skills, what the savvy gain with Nora Fleet is a new way
-to think about your problems that involves a weave between natural language tasks that LLMs are good at
-and traditional computing tasks which deterministic Python code gives you.
+Nora Fleet networks are specified entirely as data, in
+[HOCON](https://github.com/lightbend/config/blob/main/HOCON.md) — JSON with comments, among
+other conveniences. That matters for who gets to build one: authoring a network becomes an
+editing task, so subject matter experts can write them without going through a programmer.
 
-Nora Fleet also offers:
+Where a network needs to do something a language model cannot — query a web service, change
+something through an API, handle private data correctly, perform exact arithmetic, move large
+volumes of data without transcription errors — it calls a **coded tool**, written against
+LangChain's interface or this project's own. That part does take programming. What it buys is
+a way to compose the two halves of a problem: the parts that suit natural language, and the
+parts that need deterministic code.
 
-* channels for private data (aka sly_data) that should be kept out of LLM chat streams
-* LLM-provider agnosticism and extensibility of data-only-configured LLMs when new hotness arrives.
-* agent-specific LLM specifications - use the right LLM for the cost/latency/context-window/data-privacy each agent needs.
-* fallback LLM specifications for when your fave goes down.
-* powerful debugging information for gaining insight into your mutli-agent systems.
-* cloud-agnostic server-readiness at scale - run where you want
-* enabling distributed agent webs that call each other to work together, wherever they are hosted.
-* security-by-default - you set what private data is to be shared downstream/upstream
-* Out-of-the-box support for Observability/tracing data feeds for apps like LangSmith, Langfuse, Arize Phoenix and HoneyHive.
-* test infrastructure for your agent networks, including:
-    * data-driven test cases
-    * the ability for LLMs to test your agent networks
-    * an Assessor app which classifies the modes of failure for your agents, given a data-driven test case
-* MCP protocol API - Every Nora Fleet server can be an MCP Server.
-* per-user authorization for Agent Networks - optional implementations include: OpenFGA
-* Secure Bring-Your-Own-Key (BYOK) support for client-provided API keys so your deployments do not have to
-  shoulder everyone else's token costs.
+## What it provides
 
-## Quick Start
+### Data handling
 
-**🚀 For the easiest way to get started, use our automated quick start scripts!**
+- `sly_data`, a side channel for private values that must stay out of LLM chat streams
+- Security by default: you declare explicitly what is shared upstream and downstream
+- Secure bring-your-own-key support, so client-supplied API keys let a deployment avoid
+  carrying everyone else's token costs
 
-See the [quick-start/README.md](quick-start/README.md) for simple one-command scripts that handle all setup automatically:
-* **macOS/Linux:** `./quick-start/start-server.sh`
-* **Windows:** `quick-start\start-server.bat`
+### Model selection
 
-### Prerequisites
+- Provider-agnostic, with new LLMs configurable as data rather than code
+- Per-agent model choice, so cost, latency, context window and data-residency can be traded
+  off separately for each agent
+- Fallback specifications for when a preferred provider is unavailable
 
-Before running the quick start scripts, ensure you have:
-* You have Python 3.12 or better installed on your machine
-* You have virtual environment support for Python installed (typically included with Python 3.12+)
+### Operating it
 
-These scripts automatically:
-* Create and activate virtual environment
-* Install all dependencies
-* Set up environment variables
-* Enable CORS for web applications
-* Launch the server
+- Detailed debugging output for understanding what a multi-agent system actually did
+- Observability and tracing feeds for LangSmith, Langfuse, Arize Phoenix and HoneyHive
+- Cloud-agnostic and ready to serve at scale, wherever you choose to run it
+- Distributed agent webs, letting networks call each other across hosts
+- An MCP protocol API — any Nora Fleet server can act as an MCP server
+- Optional per-user authorization for agent networks, with an OpenFGA implementation available
 
-For manual setup, continue with the instructions below.
+### Testing
 
-## Running client and server
+- Data-driven test cases
+- The ability to have LLMs exercise your networks
+- An Assessor application that classifies how an agent failed, given a data-driven case
 
-### Prep
+## Quick start
 
-#### Setup your virtual environment
+The quickest route is the setup scripts, which handle everything below automatically:
 
-##### Install Python dependencies
+```bash
+# macOS and Linux
+./quick-start/start-server.sh
 
-Set PYTHONPATH environment variable
+# Windows
+quick-start\start-server.bat
+```
 
-    export PYTHONPATH=$(pwd)
+They create and activate a virtual environment, install dependencies, set environment
+variables, enable CORS for web applications, and launch the server. See
+[quick-start/README.md](quick-start/README.md) for the details.
 
-Create and activate a new virtual environment:
+You need Python 3.12 or later, with virtual environment support — normally included with
+Python 3.12 and up.
 
-    python3 -m venv venv
-    . ./venv/bin/activate
-    pip install "nora-fleet @ git+https://github.com/nvsinha/nora-fleet@v0.1.0"
+To set things up by hand instead, continue below.
 
-OR from the nora-fleet project top-level:
-Install packages specified in the following requirements files:
+## Manual setup
 
-    pip install -r requirements.txt
+Set `PYTHONPATH`, then create and activate a virtual environment:
 
-##### Set necessary environment variables
+```bash
+export PYTHONPATH=$(pwd)
+python3 -m venv venv
+. ./venv/bin/activate
+```
 
-In a terminal window, set at least these environment variables:
+Install Nora Fleet. It is not published to PyPI, so it comes from the repository:
 
-    export OPENAI_API_KEY="XXX_YOUR_OPENAI_API_KEY_HERE"
+```bash
+pip install "nora-fleet @ git+https://github.com/nvsinha/nora-fleet@v0.1.0"
+```
 
-Any other API key environment variables for other LLM provider(s) also need to be set if you are using them.
+Working from a clone of this repository, install the pinned dependencies instead:
 
-### Using as a library (Direct)
+```bash
+pip install -r requirements.txt
+```
 
-From the top-level of this repo:
+At minimum, an API key for your model provider must be set. Add the equivalent variable for
+any other provider your networks use:
 
-    python -m nora_fleet.client.agent_cli --agent hello_world
+```bash
+export OPENAI_API_KEY="XXX_YOUR_OPENAI_API_KEY_HERE"
+```
 
-Type in this input to the chat client:
+## Running
 
-    From earth, I approach a new planet and wish to send a short 2-word greeting to the new orb.
+### As a library
 
-What should return is something like:
+From the top level of the repository:
 
-    Hello, world.
+```bash
+python -m nora_fleet.client.agent_cli --agent hello_world
+```
 
-... but you are dealing with LLMs. Your results will vary!
+Give the chat client this:
 
-### Client/Server Setup
+```text
+From earth, I approach a new planet and wish to send a short 2-word greeting to the new orb.
+```
 
-#### Server
+You should get back something along the lines of `Hello, world.` — though these are language
+models, so expect variation.
 
-In the same terminal window, be sure the environment variable(s) listed above
-are set before proceeding.
+### As a service
 
-Option 1: Run the service directly.  (Most useful for development)
+Start the server in the same terminal, with the environment variables above already set.
+Running the service directly is usually the most convenient during development:
 
-    python -m nora_fleet.service.main_loop.server_main_loop
+```bash
+python -m nora_fleet.service.main_loop.server_main_loop
+```
 
-Option 2: Build and run the docker container for the hosting agent service:
+Alternatively, build and run the container:
 
-    ./nora_fleet/deploy/build.sh ; ./nora_fleet/deploy/run.sh
+```bash
+./nora_fleet/deploy/build.sh ; ./nora_fleet/deploy/run.sh
+```
 
-These build.sh / Dockerfile / run.sh scripts are intended to be portable so they can be used with
-your own projects' registries and coded_tools work.
+The `build.sh`, `Dockerfile` and `run.sh` scripts are written to be portable, so they can be
+pointed at your own registries and coded tools.
 
-ℹ️ Ensure the required environment variables
-(OPENAI_API_KEY, AGENT_TOOL_PATH, AGENT_MANIFEST_FILE, and PYTHONPATH)
-are passed into the container — either by exporting them before running run.sh,
-or by configuring them inside the script
+The container needs `OPENAI_API_KEY`, `AGENT_TOOL_PATH`, `AGENT_MANIFEST_FILE` and
+`PYTHONPATH` passed through to it. Export them before running `run.sh`, or set them inside the
+script.
 
-#### Client
+Then connect a client from another terminal:
 
-In another terminal start the chat client:
+```bash
+python -m nora_fleet.client.agent_cli --http --agent hello_world
+```
 
-    python -m nora_fleet.client.agent_cli --http --agent hello_world
+### Notes on the chat client
 
-### Extra info about agent_cli.py
+`--help` documents the full set of arguments. A few points that are easy to trip over:
 
-There is help to be had with --help.
+- The client cannot enumerate the agents registered with a service. This is deliberate.
+- A newline sends the message, which makes pasting multi-line input awkward. Use
+  `--first_prompt_file` to supply a file as the opening message instead.
+- Private data that should stay out of the chat stream is passed as a single escaped JSON
+  object: `--sly_data "{ \"login\": \"your_login\" }"`
 
-By design, you cannot see all agents registered with the service from the client.
+## Building agent networks
 
-When the chat client is given a newline as input, that implies "send the message".
-This isn't great when you are copy/pasting multi-line input.  For that there is a
---first_prompt_file argument where you can specify a file to send as the first
-message.
+### The example networks
 
-You can send private data that does not go into the chat stream as a single escaped
-string of a JSON dictionary. For example:
---sly_data "{ \"login\": \"your_login\" }"
+The HOCON files under `./nora_fleet/registries` are working examples. To try one, pass its
+filename stem to `--agent` on the chat client. Roughly in order of complexity:
 
-## Running Python unit/integration tests
+- **hello_world** — the example used above. A front-man agent talking to one agent downstream.
+- **esp_decision_assistant** — abstract, and considerably more capable. A front-man agent
+  gathers the shape of a decision in ESP terms, then calls a prescriptor, which calls one or
+  more predictors, arriving at a decision in an LLM-based ESP manner.
 
-To run Python unit/integration tests, follow the [instructions](docs/tests.md) here.
+Every new HOCON file in that directory also needs an entry in `manifest.hocon`. After adding
+one, rebuild and restart the service as above, then reach it through the chat client using its
+file stem as the agent name.
 
-## Creating a new agent network
+### Further examples
 
-### Agent example files
+The networks kept in this repository are deliberately spare — they exist for testing and for
+demonstrating single ideas. For a fuller library of networks, along with documentation and
+tutorials, see [nora-studio](https://github.com/nvsinha/nora-studio).
 
-Look at the hocon files in ./nora_fleet/registries for examples of specific agent networks.
+Every key available in an agent network is documented in the
+[agent HOCON reference](docs/agent_hocon_reference.md).
 
-The natural question to ask is: What is a hocon file?
-The simplest answer is that you can think of a hocon file as a JSON file that allows for comments.
+### The manifest
 
-Here are some descriptions of the example hocon files provided in this repo.
-To play with them, specify their stem as the argument for --agent on the agent_cli.py chat client.
-In some order of complexity, they are:
+Every agent in use needs an entry in one manifest file. In this repository that file is
+`nora_fleet/registries/manifest.hocon`.
 
-* hello_world
+Your own agents will live in your own repository with their own manifest. Point Nora Fleet at
+it with:
 
-    This is the initial example used above and demonstrates
-    a front-man agent talking to another agent downstream.
+```bash
+export AGENT_MANIFEST_FILE=<your_repo>/registries/manifest.hocon
+```
 
-* esp_decision_assistant
+## The AgentSession interface
 
-    Very abstract, but also very powerful.
-    A front man agent gathers information about a decision to make
-    in ESP terms.  It then calls a prescriptor which in turn
-    calls one or more predictors in order to help make the decision
-    in an LLM-based ESP manner.
+Whether Nora Fleet runs as a library or as an HTTP service, both client and server reach
+agents through
+[AgentSession](https://github.com/nvsinha/nora-fleet/blob/main/nora_fleet/interfaces/agent_session.py).
+It has two methods that matter:
 
-When coming up with new hocon files in that same directory, also add an entry for it
-in the manifest.hocon file.
+`function()` reports what the top-level agent will do for the caller.
 
-build.sh / run.sh the service like you did above to re-load the server,
-and interact with it via the agent_cli.py chat client, making sure
-you specify your agent correctly (per the hocon file stem).
+`streaming_chat()` is the main entry point. Send text and it opens a conversation with a
+front-man agent. If that agent needs more from you it will ask, and you answer with another
+call. Results stream back as `ChatMessage` values of several types, and the stream closes once
+the conversation ends. Messages of type `AI` are the front man replying on behalf of the rest
+of the network — those are the ones to read.
 
-### More agent example files
+Two implementations ship:
 
-Note that the .hocon files in this repo are more spartan for testing and simple
-demonstration purposes.
+- `DirectAgentSession` — for calling Nora Fleet as a library
+- `HttpServiceAgentSession` — for calling a Nora Fleet HTTP service as a client
 
-For more examples of agent networks, documentation and tutorials,
-see the [nora-studio repo.](https://github.com/nvsinha/nora-studio)
+`agent_cli` uses both, so its source is a reasonable worked example.
 
-For a complete list of agent networks keys, see the [agent hocon file reference](docs/agent_hocon_reference.md)
-
-### Manifest file
-
-All agents used need to have an entry in a single manifest hocon file.
-For the nora-fleet repo, this is: nora_fleet/registries/manifest.hocon.
-
-When you create your own repo for your own agents, that will be different
-and you will need to create your own manifest file.  To point the system
-at your own manifest file, set a new environment variable:
-
-    export AGENT_MANIFEST_FILE=<your_repo>/registries/manifest.hocon
-
-## Infrastructure
-
-The agent infrastructure is run as a library, or as an HTTP service.
-Access to agents is implemented (client and server) using the
-[AgentSession](https://github.com/nvsinha/nora-fleet/blob/main/nora_fleet/interfaces/agent_session.py)
-interface:
-
-It has 2 main methods:
-
-* function()
-
-    This tells the client what the top-level agent will do for it.
-
-* streaming_chat()
-
-    This is the main entry point. Send some text and it starts a conversation
-    with a "front man" agent.  If that guy needs more information it will ask
-    you and you return your answer via another call to the chat() interface.
-    ChatMessage Results from this method are streamed and when the conversation
-    is over, the stream itself closes after the last message has been received.
-
-    ChatMessages of various types will come back over the stream.
-    Anything of type AI is the front-man answering you on behalf of the rest of
-    its agent posse, so this is the kind you want to pay the most attention to.
-
-Implementations of the AgentSession interface:
-
-* DirectAgentSession class.  Use this if you want to call nora-fleet as a library
-* HttpServiceAgentSession class. Use this if you want to call nora-fleet as a client to a HTTP service
-
-Note that agent_cli uses all of these.  You can look at the source code there for examples.
-
-There are also some asynchoronous implementations available of the
+Asynchronous implementations of
 [AsyncAgentSession](https://github.com/nvsinha/nora-fleet/blob/main/nora_fleet/interfaces/async_agent_session.py)
-interface:
+are also available.
 
-## Advanced concepts
+## Coded tools
 
-### Coded Tools
+Most examples here are no-code networks, but agent networks also support coded tools for
+low-code solutions. They most often exist to call a specific web service, though they can be
+any Python at all, provided they derive from the `CodedTool` interface in
+`nora_fleet/interfaces/coded_tool.py`.
 
-Most of the examples provided here show how no-code agents are put together,
-but nora-fleet agent networks support the notion of coded tools for
-low-code solutions.
+The interface centres on one method:
 
-These are most often used when an agent needs to call out to a specific
-web service, but they can be any kind of Python code as long it
-derives from the CodedTool interface defined in nora_fleet/interfaces/coded_tool.py.
+```python
+async def async_invoke(self, args: Dict[str, Any], sly_data: Dict[str, Any]) -> Any:
+```
 
-The main interface for this class looks like this:
+A synchronous version exists for quick experiments, but the asynchronous form is the intended
+entry point: Nora Fleet runs in an asynchronous server environment specifically so agents can
+work in parallel.
 
-     async def async_invoke(self, args: Dict[str, Any], sly_data: Dict[str, Any]) -> Any:
+`args` is supplied by the calling LLM, and its keys are defined in that tool's entry in the
+agent's HOCON file.
 
-Note that while a synchronous version of this method is available for tire-kicking convenience,
-this asynchronous interface is the preferred entry point because nora-fleet itself is designed
-to operate in an asynchronous server environment to enhance agent parallelism.
+`sly_data` is for values that must never reach the chat stream. Usually that means private
+data, but it also works as a noticeboard where coded tools leave results for one another. It
+can arrive from several directions:
 
-The args are an argument dictionary passed in by the calling LLM, whose keys
-are defined in the agent's hocon entry for the CodedTool.
+- sent explicitly by a client — usernames, tokens, session identifiers and the like
+- produced by other coded tools
+- produced by other agent networks
 
-The intent with sly_data is that the data in this dictionary is to never supposed to enter the chat stream.
-Most often this is private data, but sly_data can also be used as a bulletin-board as a place
-for CodedTools to cooperate on their results.
+The class and method comments in `nora_fleet/interfaces/coded_tool.py` go further.
 
-Sly data has many potential originations:
+Writing your own coded tools brings one more environment variable into play:
 
-* sent explicitly by a client (usernames, tokens, session ids, etc),
-* generated by other CodedTools
-* generated by other agent networks.
+```bash
+export AGENT_TOOL_PATH=<your_repo>/coded_tools
+```
 
-See the class and method comments in nora_fleet/interfaces/coded_tool.py for more information.
+Below that path, classes are resolved dynamically by agent name, so a new tool belongs at:
 
-When you develop your own coded tools, there is another environment variable
-that comes into play:
+```text
+<your_repo>/coded_tools/<your_agent_name>/<your_coded_tool>.py
+```
 
-    export AGENT_TOOL_PATH=<your_repo>/coded_tools
+## Tests
 
-Beneath this, classes are dynamically resolved based on their agent name.
-That is, if you added a new coded tool to your agent, its file path would
-look like this:
+Running the Python unit and integration tests is covered in [docs/tests.md](docs/tests.md).
 
-    <your_repo>/coded_tools/<your_agent_name>/<your_coded_tool>.py
+## Writing clients
 
-## Creating Clients
+Building your own client is covered in [docs/clients.md](docs/clients.md).
 
-To create clients, follow the [instructions](docs/clients.md) here.
+## MCP protocol API
 
-## Using nora-fleet MCP protocol API
-
-To use nora-fleet as an MCP server, see details in [mcp](docs/mcp_service.md)
+Using Nora Fleet as an MCP server is covered in [docs/mcp_service.md](docs/mcp_service.md).
