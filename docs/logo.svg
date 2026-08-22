@@ -1,0 +1,4 @@
+<!-- nora-fleet mark. Source of truth for the family: see docs/BRAND.md in nora-studio. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" fill="none" role="img" aria-label="nora-fleet">
+<path d="M32 34 L32 15" fill="none" stroke="#3F9E88" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M32 34 L48.5 43.5" fill="none" stroke="#3F9E88" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M32 34 L15.5 43.5" fill="none" stroke="#3F9E88" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="32" cy="15" r="6.5" fill="#3F9E88"/><circle cx="48.5" cy="43.5" r="6.5" fill="#3F9E88"/><circle cx="15.5" cy="43.5" r="6.5" fill="#3F9E88"/><circle cx="32" cy="34" r="9" fill="#3F9E88"/>
+</svg>

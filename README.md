@@ -1,3 +1,9 @@
+<!-- pyml disable no-inline-html,first-line-heading -->
+<img src="https://raw.githubusercontent.com/nvsinha/nora-fleet/main/docs/logo.svg"
+     alt="" width="72" height="72" />
+
+<!-- pyml enable no-inline-html,first-line-heading -->
+
 # Nora Fleet
 
 **Multi-agent networks, defined in config.**
