@@ -90,7 +90,7 @@ Create and activate a new virtual environment:
 
     python3 -m venv venv
     . ./venv/bin/activate
-    pip install nora-fleet
+    pip install "nora-fleet @ git+https://github.com/nvsinha/nora-fleet@v0.1.0"
 
 OR from the nora-fleet project top-level:
 Install packages specified in the following requirements files:
