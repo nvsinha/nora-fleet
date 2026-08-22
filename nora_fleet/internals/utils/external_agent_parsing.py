@@ -107,12 +107,12 @@ class ExternalAgentParsing:
         :return: True if this is an MCP tool reference
         """
         # Support both str and dict format;
-        # str format: a canonical MCP server URI, e.g. "https://mcp.deepwiki.com/mcp",
-        #             "http://localhost:8000/mcp/", or "https://deepwiki.com/mcp/free"
+        # str format: a canonical MCP server URI, e.g. "https://mcp.example.com/mcp"
+        #             or "http://localhost:8000/mcp/"
         # dict format:
         # {
-        #       "url": "https://mcp.deepwiki.com/mcp",
-        #       "tools": ["read_wiki_structure", "ask_question"],
+        #       "url": "https://mcp.example.com/mcp",
+        #       "tools": ["search", "fetch"],
         # }
 
         # If it is a dict, it is assumed it is MCP for now.

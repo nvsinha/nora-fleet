@@ -31,7 +31,6 @@ class TestIntegrationTestHocons(TestCase):
         # Ideally more basic functionality will come first.
         # Barring that, try to stick to alphabetical order.
         "esp_decision_assistant/fallbacks_and_commondef_values.hocon",
-        "mcp_deepwiki_dict/nora_fleet.hocon",
         "music_nerd_pro_sly/combination_responses_with_history_direct.hocon",
 
         # List more hocon files as they become available here.

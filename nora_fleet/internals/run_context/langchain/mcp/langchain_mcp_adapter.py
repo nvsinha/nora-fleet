@@ -67,7 +67,7 @@ class LangChainMcpAdapter:
         """
         Fetches tools from the given MCP server and returns them as a list of LangChain-compatible tools.
 
-        :param server_url: URL of the MCP server, e.g. https://mcp.deepwiki.com/mcp or http://localhost:8000/mcp/
+        :param server_url: URL of the MCP server, e.g. https://mcp.example.com/mcp or http://localhost:8000/mcp/
         :param allowed_tools: Optional list of tool names to filter from the server's available tools.
                               If None, all tools from the server will be returned.
         :param headers: Optional dictionary of HTTP headers to include in the MCP requests.
