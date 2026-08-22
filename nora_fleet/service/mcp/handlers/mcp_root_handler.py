@@ -259,7 +259,7 @@ class McpRootHandler(BaseRequestHandler):
                 self.write(result_dict)
                 return session_id, True
             if method == "notifications/initialized":
-                # Handle client acknowledgement of initialization response,
+                # Handle client acknowledgment of initialization response,
                 # this activates the session on the server side for further operations.
                 handshake_processor: McpInitializeProcessor = McpInitializeProcessor(self.mcp_context, self.logger)
                 result: bool = await handshake_processor.activate_session(session_id, metadata)

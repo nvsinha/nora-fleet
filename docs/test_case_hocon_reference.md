@@ -84,7 +84,7 @@ Currently, only testing against a locally running server is supported.
 A string value that represents the fraction of test attempts that need to succeed
 in order to call the test passing.
 
-The big idea here is that this is an acknowledgement of the realities of working with LLMs:
+The big idea here is that this is an acknowledgment of the realities of working with LLMs:
 
 - agents do not always do what you want them to
 - getting agents to give you correct output given existing prompts and a particular input is fundamentally an optimization

@@ -29,7 +29,7 @@ COUNT_MILESTONE_STEP = 50
 
 
 class LatencyAnalyzer:
-    """Analyse per-request latency data across stages."""
+    """Analyze per-request latency data across stages."""
 
     def __init__(self, stage_summaries) -> None:
         self._summaries = stage_summaries

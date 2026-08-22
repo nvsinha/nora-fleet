@@ -180,7 +180,7 @@ class TrafficRunner:
 
         # Subprocess mode extracts fields via regex over the
         # entire stdout (answer text + sly_data).  Match that
-        # behaviour: for any success field not already found in
+        # behavior: for any success field not already found in
         # sly_data, search the answer text with the same regex.
         for field in self._profile.success_fields:
             if not parsed_fields.get(field) and response_text:

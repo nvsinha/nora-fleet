@@ -96,7 +96,7 @@ class TestHttpRequestTimeout(TestCase):
 
         Reporting TIMEOUT after draining the whole stream would still
         label the request correctly while the worker stayed occupied,
-        which is the behaviour being fixed.
+        which is the behavior being fixed.
         """
         start = time.time()
         _result, session = self._execute(

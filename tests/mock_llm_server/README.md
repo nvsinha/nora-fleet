@@ -204,7 +204,7 @@ client (Locust, `wrk`, your own driver) at the nora-fleet service while the
 agent's `llm_config` points at the mock. Real network sockets, real
 serialization, real LangChain runnable pipeline; no LLM cost, no rate limit.
 
-**Reproducing latency-sensitive behaviour**: tune `--min-latency` /
+**Reproducing latency-sensitive behavior**: tune `--min-latency` /
 `--max-latency` to match your production LLM's p50 / p99 to reproduce
 streaming back-pressure, request-timeout edge cases, and concurrent-request
 saturation under realistic timing.

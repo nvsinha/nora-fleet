@@ -58,7 +58,7 @@ class TestAbstractAsyncConfigRestorer:
 
     @staticmethod
     def write_json_file(tmp_path: Path, content: Dict[str, Any], filename: str = "config.json") -> str:
-        """Write a JSON-serialised dict to a temporary file and return its path."""
+        """Write a JSON-serialized dict to a temporary file and return its path."""
         path: Path = tmp_path / filename
         path.write_text(json.dumps(content), encoding="utf-8")
         return str(path)
@@ -174,7 +174,7 @@ class TestAbstractAsyncConfigRestorer:
     # -----------------------------------------------------------------------
 
     def test_deserialize_parses_valid_json(self) -> None:
-        """Valid JSON content is deserialised to the expected dictionary."""
+        """Valid JSON content is deserialized to the expected dictionary."""
         r: ConcreteRestorer = self.make_restorer()
         result: Dict[str, Any] = r.deserialize_file_contents(
             str(FIXTURES_DIR / "valid.json"),
@@ -183,7 +183,7 @@ class TestAbstractAsyncConfigRestorer:
         assert result == VALID_DICT
 
     def test_deserialize_parses_valid_hocon(self) -> None:
-        """Valid HOCON content is deserialised to the expected dictionary."""
+        """Valid HOCON content is deserialized to the expected dictionary."""
         r: ConcreteRestorer = self.make_restorer()
         result: Dict[str, Any] = r.deserialize_file_contents(
             str(FIXTURES_DIR / "valid.hocon"),
@@ -311,13 +311,13 @@ class TestAbstractAsyncConfigRestorer:
         assert r.restore() is None
 
     def test_restore_reads_json_file(self, tmp_path: Path) -> None:
-        """A valid JSON file on disk is read and deserialised correctly."""
+        """A valid JSON file on disk is read and deserialized correctly."""
         path: str = self.copy_fixture(tmp_path, "valid.json")
         r: ConcreteRestorer = self.make_restorer()
         assert r.restore(path) == VALID_DICT
 
     def test_restore_reads_hocon_file(self, tmp_path: Path) -> None:
-        """A valid HOCON file on disk is read and deserialised correctly."""
+        """A valid HOCON file on disk is read and deserialized correctly."""
         path: str = self.copy_fixture(tmp_path, "valid.hocon")
         r: ConcreteRestorer = self.make_restorer()
         assert r.restore(path) == VALID_DICT
@@ -381,13 +381,13 @@ class TestAbstractAsyncConfigRestorer:
         assert self.run(r.async_restore()) is None
 
     def test_async_restore_reads_json_file(self, tmp_path: Path) -> None:
-        """A valid JSON file read asynchronously is deserialised correctly."""
+        """A valid JSON file read asynchronously is deserialized correctly."""
         path: str = self.copy_fixture(tmp_path, "valid.json")
         r: ConcreteRestorer = self.make_restorer()
         assert self.run(r.async_restore(path)) == VALID_DICT
 
     def test_async_restore_reads_hocon_file(self, tmp_path: Path) -> None:
-        """A valid HOCON file read asynchronously is deserialised correctly."""
+        """A valid HOCON file read asynchronously is deserialized correctly."""
         path: str = self.copy_fixture(tmp_path, "valid.hocon")
         r: ConcreteRestorer = self.make_restorer()
         assert self.run(r.async_restore(path)) == VALID_DICT

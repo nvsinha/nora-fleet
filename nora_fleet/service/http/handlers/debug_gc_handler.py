@@ -89,7 +89,7 @@ class DebugGcHandler(RequestHandler):
         # X-Content-Type-Options: nosniff disables MIME sniffing on the
         # response, so a browser cannot reinterpret text/plain output as
         # HTML even if the body happened to look like HTML. Applied to
-        # both branches for defence in depth and to satisfy static
+        # both branches for defense in depth and to satisfy static
         # analyzers (CodeQL / Bandit / Snyk) that taint-track user query
         # args reaching response sinks.
         self.set_header("X-Content-Type-Options", "nosniff")
@@ -99,7 +99,7 @@ class DebugGcHandler(RequestHandler):
             self.set_header("Content-Type", "text/plain; charset=utf-8")
             # The report body is server-generated GC/memory statistics with no
             # user input, but we route it through safe_message (html.escape)
-            # anyway: it is a no-op on the numeric content, is defence-in-depth
+            # anyway: it is a no-op on the numeric content, is defense-in-depth
             # should the report ever gain user-derived fields, and marks this
             # write as sanitized for the reflected-XSS static analyzers.
             self.write(RequestUtil.safe_message(self._format_report(report)))

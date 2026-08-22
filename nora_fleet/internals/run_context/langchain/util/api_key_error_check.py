@@ -99,7 +99,7 @@ Some things to try:
    on the same machine making this request.
 """
 
-        # No catalogue hit. If this is a pydantic ValidationError, the raw
+        # No catalog hit. If this is a pydantic ValidationError, the raw
         # str(exception) can include `input_value=<the user's input>` — which
         # would leak any user-supplied API key value. Rebuild the message from
         # the structured .errors() data instead, omitting the raw input entirely.

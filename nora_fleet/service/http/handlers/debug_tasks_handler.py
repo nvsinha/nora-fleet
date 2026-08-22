@@ -88,7 +88,7 @@ class DebugTasksHandler(RequestHandler):
         # X-Content-Type-Options: nosniff disables MIME sniffing on the
         # response, so a browser cannot reinterpret text/plain output as
         # HTML even if the body happened to look like HTML. Applied to
-        # both branches for defence in depth and to satisfy static
+        # both branches for defense in depth and to satisfy static
         # analyzers (CodeQL / Bandit / Snyk) that taint-track user query
         # args reaching response sinks.
         self.set_header("X-Content-Type-Options", "nosniff")

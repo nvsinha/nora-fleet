@@ -240,7 +240,7 @@ low-code solutions. They most often exist to call a specific web service, though
 any Python at all, provided they derive from the `CodedTool` interface in
 `nora_fleet/interfaces/coded_tool.py`.
 
-The interface centres on one method:
+The interface centers on one method:
 
 ```python
 async def async_invoke(self, args: Dict[str, Any], sly_data: Dict[str, Any]) -> Any:

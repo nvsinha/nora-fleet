@@ -17,7 +17,7 @@ from nora_fleet.internals.persistence.abstract_async_config_restorer import Abst
 
 
 class ConcreteRestorer(AbstractAsyncConfigRestorer):
-    """Minimal concrete subclass – inherits all behaviour from the abstract base."""
+    """Minimal concrete subclass – inherits all behavior from the abstract base."""
 
 
 # The dictionary the valid.json and valid.hocon fixture files deserialize to.

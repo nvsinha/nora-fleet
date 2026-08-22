@@ -374,7 +374,7 @@ Some hints:
     whatever dictionary you specify there as extra key/value pairs to your
     CodedTool's invoke()/async_invoke() method's args parameter in addition
     to those provided by any calling LLM.
-2)  If you need something more dynamic that is shared amongst the CodedTools
+2)  If you need something more dynamic that is shared among the CodedTools
     of your agent network to handle a single request, consider lazy instantiation
     of the object in question, and share a reference to that object in the
     sly_data dictionary. The lifetime of that object will last as long

@@ -55,7 +55,7 @@ class AbstractNetworkValidatorTest(AssertForwarder):
 
         Runs through the same AgentNetworkRestorer filter chain
         (commondefs, defaults, name-correction) that production configs
-        see, so test data mirrors real behaviour.
+        see, so test data mirrors real behavior.
         """
         if cls._FIXTURE_DIR is None:
             raise NotImplementedError(
