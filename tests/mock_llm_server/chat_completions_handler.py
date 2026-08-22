@@ -11,7 +11,6 @@ See class comment for details.
 from __future__ import annotations
 
 import asyncio
-import html
 import json
 import random
 import time
@@ -30,6 +29,24 @@ from tests.mock_llm_server.mock_state import MockState
 from tests.mock_llm_server.tool_arg_generator import ToolArgGenerator
 
 
+# JSON is safe to parse but not automatically safe to *render*. A browser that
+# decides a response is HTML will happily act on a <script> in it, and this
+# handler echoes request-supplied tool and model names straight back.
+#
+# These three escapes are ordinary JSON string escapes -- a client decodes
+# them back to the original characters, so nothing is lost or altered -- but
+# they mean the bytes on the wire can never form an HTML tag or entity. It is
+# the same trick Django's json_script and Rails' json_escape use, and unlike
+# html.escape it is applied to the serialized output rather than to the values,
+# so it cannot corrupt them.
+_HTML_SENSITIVE = str.maketrans({"<": "\\u003c", ">": "\\u003e", "&": "\\u0026"})
+
+
+def _safe_json(payload: Any) -> str:
+    """Serialize a payload compactly, with no character that can start HTML."""
+    return json.dumps(payload, separators=(",", ":")).translate(_HTML_SENSITIVE)
+
+
 class ChatCompletionsHandler(tornado.web.RequestHandler):
     """
     Implements POST /v1/chat/completions in OpenAI-compatible form. Honors
@@ -37,10 +54,25 @@ class ChatCompletionsHandler(tornado.web.RequestHandler):
     chat completion or a Server-Sent Event stream of completion chunks.
     """
 
+    def set_default_headers(self) -> None:
+        """
+        Applied to every response this handler produces.
+
+        The body echoes request-supplied names back to the caller, so the
+        browser must not get to decide for itself what type it is looking at.
+        nosniff pins it to whatever Content-Type we declared.
+        """
+        self.set_header("X-Content-Type-Options", "nosniff")
+
     def initialize(self, state: MockState) -> None:
         """Receive the shared MockState from the Tornado application."""
         # pylint: disable=attribute-defined-outside-init
         self.state = state
+
+    def _write_json(self, payload: Any) -> None:
+        """Write one JSON body, declared and escaped so it cannot be read as HTML."""
+        self.set_header("Content-Type", "application/json")
+        self.write(_safe_json(payload))
 
     def _check_arg_shape(self, arg: Any) -> bool:
         """
@@ -59,7 +91,7 @@ class ChatCompletionsHandler(tornado.web.RequestHandler):
             body: Dict[str, Any] = json.loads(self.request.body or b"{}")
         except json.JSONDecodeError:
             self.set_status(400)
-            self.write({"error": {"message": "invalid JSON body"}})
+            self._write_json({"error": {"message": "invalid JSON body"}})
             return
 
         messages: List[Dict[str, Any]] = body.get("messages", [])
@@ -68,7 +100,7 @@ class ChatCompletionsHandler(tornado.web.RequestHandler):
         if not self._check_arg_shape(messages) or not self._check_arg_shape(tools) or \
                 not isinstance(stream_value, bool):
             self.set_status(400)
-            self.write({"error": {"message": "invalid JSON body"}})
+            self._write_json({"error": {"message": "invalid JSON body"}})
             return
 
         stream: bool = stream_value
@@ -86,7 +118,7 @@ class ChatCompletionsHandler(tornado.web.RequestHandler):
             message_payload = {"role": "assistant", "content": self.state.next_response()}
             finish_reason = "stop"
 
-        self.write(self._chat_completion_envelope(requested_model, message_payload, finish_reason))
+        self._write_json(self._chat_completion_envelope(requested_model, message_payload, finish_reason))
 
     @staticmethod
     def _tool_call_response(tools: List[Dict[str, Any]]) -> Tuple[Dict[str, Any], str]:
@@ -103,7 +135,7 @@ class ChatCompletionsHandler(tornado.web.RequestHandler):
                     "id": f"call_{uuid.uuid4().hex[:24]}",
                     "type": "function",
                     "function": {
-                        "name": html.escape(str(tool_name)),
+                        "name": str(tool_name),
                         "arguments": json.dumps(args),
                     },
                 }
@@ -149,7 +181,7 @@ class ChatCompletionsHandler(tornado.web.RequestHandler):
             "id": completion_id,
             "object": "chat.completion.chunk",
             "created": created,
-            "model": html.escape(str(model)),
+            "model": str(model),
             "choices": [
                 {"index": 0, "delta": delta, "finish_reason": finish_reason}
             ],
@@ -178,7 +210,7 @@ class ChatCompletionsHandler(tornado.web.RequestHandler):
                 "id": tool_call_id,
                 "type": "function",
                 "function": {
-                    "name": html.escape(tool_name),
+                    "name": tool_name,
                     "arguments": ""
                 },
             }],
@@ -211,8 +243,7 @@ class ChatCompletionsHandler(tornado.web.RequestHandler):
 
     async def _send_event(self, payload: Dict[str, Any]) -> None:
         """Write one `data: {json}\\n\\n` SSE frame and flush it to the client."""
-        serialized_payload = json.dumps(payload, separators=(",", ":"))
-        self.write(f"data: {serialized_payload}\n\n")
+        self.write(f"data: {_safe_json(payload)}\n\n")
         await self.flush()
 
     def data_received(self, chunk):
@@ -229,7 +260,7 @@ class ChatCompletionsHandler(tornado.web.RequestHandler):
             "id": f"chatcmpl-{uuid.uuid4().hex[:24]}",
             "object": "chat.completion",
             "created": int(time.time()),
-            "model": html.escape(str(model)),
+            "model": str(model),
             "choices": [
                 {
                     "index": 0,
